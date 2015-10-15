@@ -48,34 +48,84 @@ float cx = 0;
 float cy = 0;
 float cz = 0;
 
-void DrawNet(GLfloat size, GLint LinesX, GLint LinesZ)
-{
-    glBegin(GL_LINES);
-    for (int xc = 0; xc < LinesX; xc++)
-    {
-        glVertex3f(	-size / 2.0 + xc / (GLfloat)(LinesX-1)*size,
-                   0.0,
-                   size / 2.0);
-        glVertex3f(	-size / 2.0 + xc / (GLfloat)(LinesX-1)*size,
-                   0.0,
-                   size / -2.0);
+class Grid {
+
+public:
+    
+    GLfloat angle = 0;
+    GLint orientX = 0;
+    GLint orientY = 0;
+    GLint orientZ = 0;
+    GLfloat size;
+    GLint LinesX;
+    GLint LinesY;
+    
+    void draw() {
+        // Set grid orientation
+        glRotatef(angle, orientX, orientY, orientZ);
+        glBegin(GL_LINES);
+        for (int xc = 0; xc < LinesX; xc++)
+        {
+            glVertex3f(	-size / 2.0 + xc / (GLfloat)(LinesX-1)*size,
+                       size / 2.0,
+                       0.0);
+            glVertex3f(	-size / 2.0 + xc / (GLfloat)(LinesX-1)*size,
+                       size / -2.0,
+                       0.0);
+        }
+        for (int yc = 0; yc < LinesY; yc++)
+        {
+            glVertex3f(	size / 2.0,
+                        -size / 2.0 + yc / (GLfloat)(LinesY-1)*size,
+                        0.0);
+            glVertex3f(	size / -2.0,
+                       -size / 2.0 + yc / (GLfloat)(LinesY-1)*size,
+            0.0);
+        }
+        glEnd();
     }
-    for (int zc = 0; zc < LinesX; zc++)
-    {
-        glVertex3f(	size / 2.0,
-                   0.0,
-                   -size / 2.0 + zc / (GLfloat)(LinesZ-1)*size);
-        glVertex3f(	size / -2.0,
-                   0.0,
-                   -size / 2.0 + zc / (GLfloat)(LinesZ-1)*size);
+};
+
+class Player {
+public:
+    
+    GLfloat posX = 0;
+    GLfloat posY = 0;
+    GLfloat posZ = 0;
+    GLfloat posLimit = 4;
+    
+    
+    // TODO: Fix limits. May be need to pas Up, Down, Left, Right
+    void move(GLfloat x, GLfloat y, GLfloat z){
+        if (posX < posLimit) {
+            posX += x;
+        } else if (posX == posLimit) {
+            posX -= x;
+        }
+        if (posY < posLimit) {
+            posY += y;
+        }
+        if (posZ < posLimit) {
+            posZ += z;
+        }
+            
     }
-    glEnd();
-}
+    
+    void draw(){
+        glColor3f(1, 0, 0);
+        glTranslatef(posX, posY, posZ);
+        GLUquadric *quad;
+        quad = gluNewQuadric();
+        gluSphere(quad,0.4,8,8);
+        glColor3f(1, 1, 1);
+    }
+};
 
 
 float angle = 0;
 float earthAngle = 0;
 float moonAngle = 0;
+Player player;
 
 void renderScene(SDL_Window *mainwindow) {
     
@@ -85,34 +135,44 @@ void renderScene(SDL_Window *mainwindow) {
     // Reset transformations
     glLoadIdentity();
     
-    gluLookAt(0, 0, 10,
+    gluLookAt(0, 0, 80,
               0, 0, 0,
-              0, 1, 0);
+              1, 0, 0);
     
-    DrawNet(1, 1, 1);
+    // Draw a grid
+    Grid myGrid;
+    myGrid.size = 9;
+    myGrid.LinesX = 10;
+    myGrid.LinesY = 10;
+    myGrid.draw();
     
-    // SUN
-    glColor3f(1, 1, 0);
-    glutWireSphere(1, 8, 8);
-
-    // EARTH
-    glColor3f(0, 0, 1);
-    glRotatef(earthAngle, 0, 0, 1);
-    glTranslatef(3, 0, 0);
-    glutWireSphere(0.1, 6, 6);
-
-    //MOON
-    glColor3f(1, 1, 1);
-    glRotatef(moonAngle, 0, 0, 1);
-    glTranslatef(0.2, 0, 0);
-    glutWireSphere(0.01, 4, 4);
+    player.draw();
+    
+    
+//    // SUN
+//    glColor3f(1, 1, 0);
+//    glutWireSphere(1, 8, 8);
+//
+//    // EARTH
+//    glColor3f(0, 0, 1);
+//    glRotatef(earthAngle, 0, 0, 1);
+//    glTranslatef(3, 0, 0);
+//    glutWireSphere(0.1, 6, 6);
+//
+//    //MOON
+//    glColor3f(1, 1, 1);
+//    glRotatef(moonAngle, 0, 0, 1);
+//    glTranslatef(0.2, 0, 0);
+//    glutWireSphere(0.01, 4, 4);
+//
+    
+//    glBegin(GL_LINE_STRIP);
+//    glVertex3f(0, 0, 0);
+//    glVertex3f(0.05, 1, 0);
+//    glEnd();
     
     SDL_GL_SwapWindow(mainwindow);
-    
-    earthAngle += 0.5;
-    moonAngle += 1;
 
-    angle += 0.1;
 }
 
 void changeSize(int w, int h) {
@@ -137,7 +197,8 @@ void changeSize(int w, int h) {
     
     // Set the correct perspective.
     // https://www.opengl.org/sdk/docs/man2/xhtml/gluPerspective.xml
-    gluPerspective(45, ratio, 0.01, 100.0);
+    gluPerspective(25, ratio, 0.01, 100.0);
+
     
     //GLKMatrix4 perspMatrix = GLKMatrix4MakePerspective(GLKMathDegreesToRadians(26.0), ratio, 0.1, 1000.0);
     //glMultMatrixf(perspMatrix.m);
@@ -197,23 +258,23 @@ int main(int argc, const char * argv[]) {
                     switch (event.key.keysym.sym) {
                         case SDLK_UP:
                             std::cout << "Up key pressed" << std::endl;
-                            cy+=0.5;
-                            std::cout << "CY: " << cy << std::endl;
+                            player.move(1, 0, 0);
+                            std::cout << "Player pos X " << player.posX << std::endl;
                             break;
                         case SDLK_DOWN:
                             std::cout << "Down key pressed" << std::endl;
-                            cy-=0.5;
-                            std::cout << "CY: " << cy << std::endl;
+                            player.move(-1, 0, 0);
+                            std::cout << "Player pos X " << player.posX << std::endl;
                             break;
                         case SDLK_LEFT:
                             std::cout << "Left key pressed" << std::endl;
-                            cx+=0.5;
-                            std::cout << "CX: " << cx << std::endl;
+                            player.move(0, 1, 0);
+                            std::cout << "Player pos Y " << player.posY << std::endl;
                             break;
                         case SDLK_RIGHT:
                             std::cout << "Right key pressed" << std::endl;
-                            cx-=0.5;
-                            std::cout << "CX: " << cx << std::endl;
+                            player.move(0, -1, 0);
+                            std::cout << "Player pos Y " << player.posY << std::endl;
                             break;
                     }
                     break;
