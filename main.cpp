@@ -36,6 +36,8 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include <time.h>
+#include <stdlib.h>     /* srand, rand */
 
 #include "SDL2/SDL.h"
 #include "OpenGL/gl3.h"
@@ -49,7 +51,10 @@ float cy = 0;
 float cz = 0;
 
 class Grid {
-
+private:
+    const int _gridSize = 10;
+    //TODO: How to dynamicaly resize base on grid size?
+    int _types[10][10];
 public:
     
     GLfloat angle = 0;
@@ -59,6 +64,8 @@ public:
     GLfloat size;
     GLint LinesX;
     GLint LinesY;
+    
+
     
     void draw() {
         // Set grid orientation
@@ -84,9 +91,40 @@ public:
         }
         glEnd();
     }
+    
+    void placeTypes() {
+        
+        int typeNum = 4;
+        
+        srand(time(NULL));
+        
+        for (int i = 0; i < _gridSize; i++) {
+            for (int j = 0; j < _gridSize; j++) {
+                _types[i][j] = rand() % typeNum + 1;
+            }
+        }
+    }
+    
+    int getTypes() {
+        return _types[_gridSize][_gridSize];
+    }
+    
+    void printTypes() {
+        for (int i = 0; i < _gridSize; i++){
+            std::cout << std::endl;
+            for (int j = 0; j < _gridSize; j++){
+                std::cout << _types[i][j];
+            }
+        }
+        std::cout << std::endl;
+    }
 };
 
-class Player {
+class Char {
+protected:
+    GLfloat _cR;
+    GLfloat _cG;
+    GLfloat _cB;
 public:
     
     GLfloat posX = 0;
@@ -94,25 +132,44 @@ public:
     GLfloat posZ = 0;
     GLfloat posLimit = 4;
     
-    
-    // TODO: Fix limits. May be need to pas Up, Down, Left, Right
     void move(GLfloat x, GLfloat y, GLfloat z){
-        if (posX < posLimit) {
-            posX += x;
-        } else if (posX == posLimit) {
-            posX -= x;
+        if (x > 0) {
+            if (posX < posLimit) {
+                posX += x;
+            }
+        } else if (x < 0) {
+            if (posX > -posLimit) {
+                posX += x;
+            }
         }
-        if (posY < posLimit) {
-            posY += y;
+        if (y > 0) {
+            if (posY < posLimit) {
+                posY += y;
+            }
+        } else if (y < 0) {
+            if (posY > -posLimit) {
+                posY += y;
+            }
         }
+        
+        // Not implemented
         if (posZ < posLimit) {
             posZ += z;
         }
-            
+        
     }
     
+    void setColor( GLfloat cR,
+                   GLfloat cG,
+                   GLfloat cB) {
+        _cR = cR;
+        _cG = cG;
+        _cB = cB;
+    }
+    
+    
     void draw(){
-        glColor3f(1, 0, 0);
+        glColor3f(_cR, _cG, _cB);
         glTranslatef(posX, posY, posZ);
         GLUquadric *quad;
         quad = gluNewQuadric();
@@ -121,11 +178,22 @@ public:
     }
 };
 
+class Player: public Char {
 
-float angle = 0;
+};
+
+class Enemie: public Char {
+    
+};
+
+
 float earthAngle = 0;
 float moonAngle = 0;
+
 Player player;
+
+Grid myGrid;
+
 
 void renderScene(SDL_Window *mainwindow) {
     
@@ -139,39 +207,25 @@ void renderScene(SDL_Window *mainwindow) {
               0, 0, 0,
               1, 0, 0);
     
-    // Draw a grid
-    Grid myGrid;
-    myGrid.size = 9;
-    myGrid.LinesX = 10;
-    myGrid.LinesY = 10;
-    myGrid.draw();
     
+    myGrid.draw();
     player.draw();
     
-    
-//    // SUN
-//    glColor3f(1, 1, 0);
-//    glutWireSphere(1, 8, 8);
-//
-//    // EARTH
-//    glColor3f(0, 0, 1);
-//    glRotatef(earthAngle, 0, 0, 1);
-//    glTranslatef(3, 0, 0);
-//    glutWireSphere(0.1, 6, 6);
-//
-//    //MOON
-//    glColor3f(1, 1, 1);
-//    glRotatef(moonAngle, 0, 0, 1);
-//    glTranslatef(0.2, 0, 0);
-//    glutWireSphere(0.01, 4, 4);
-//
-    
-//    glBegin(GL_LINE_STRIP);
-//    glVertex3f(0, 0, 0);
-//    glVertex3f(0.05, 1, 0);
-//    glEnd();
-    
     SDL_GL_SwapWindow(mainwindow);
+
+}
+
+void placeObjects(){
+    
+    // TODO: Figure out how to handle arrays in C++ in procedurel way.
+    
+    //int types[10][] = myGrid.getTypes();
+//    for (int i = 0; i < 10; i++){
+//        std::cout << std::endl;
+//        for (int j = 0; j < 10; j++){
+//            std::cout << types[i][j];
+//        }
+//    }
 
 }
 
@@ -230,6 +284,13 @@ int main(int argc, const char * argv[]) {
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     SDL_GL_SetSwapInterval(1);
     
+    player.setColor(0, 1, 0);
+    myGrid.size = 9;
+    myGrid.LinesX = 10;
+    myGrid.LinesY = 10;
+    myGrid.placeTypes();
+    myGrid.printTypes();
+    
     SDL_Event event;
     bool running = true;
     // Initialize camera
@@ -241,8 +302,8 @@ int main(int argc, const char * argv[]) {
             
             switch (event.type) {
                     
-                    // Capture any window event
-                    // https://wiki.libsdl.org/SDL_WindowEvent
+                // Capture any window event
+                // https://wiki.libsdl.org/SDL_WindowEvent
                 case SDL_WINDOWEVENT:
                     switch (event.window.event) {
                         case SDL_WINDOWEVENT_RESIZED:
@@ -253,7 +314,7 @@ int main(int argc, const char * argv[]) {
                     }
                     break;
                     
-                    // Handle keyboar events
+                // Handle keyboar events
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym) {
                         case SDLK_UP:
@@ -287,6 +348,7 @@ int main(int argc, const char * argv[]) {
         
         renderScene(mainwindow);
         
+        // Insure that screen update happen no more then 60 fps
         //std::cout << "End: " << SDL_GetTicks() << std::endl;
         if (1000/60>(SDL_GetTicks() - start)) {
             SDL_Delay(1000/60 - (SDL_GetTicks() - start));
